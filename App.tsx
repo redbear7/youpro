@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Settings, Youtube, LayoutGrid, Trophy, Video, Heart, X, ExternalLink, Play, Sparkles, ChevronDown, Bookmark, Download, Upload, RefreshCcw, Clock, Tv, Book, Music } from 'lucide-react';
+import { Settings, Youtube, LayoutGrid, Trophy, Video, Heart, X, ExternalLink, Play, Sparkles, ChevronDown, Bookmark, Download, Upload, RefreshCcw, Clock, Tv, Book, Music, Search } from 'lucide-react';
 import { YouTubeVideo, ChannelInfo, SortOrder, ViewType } from './types';
 import { YouTubeService, SavedItem, FeedCache } from './services/youtubeService';
 import { GoogleGenAI } from "@google/genai";
@@ -22,6 +22,9 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [previewVideoId, setPreviewVideoId] = useState<string | null>(null);
   const [lastUpdateTime, setLastUpdateTime] = useState<string | null>(null);
+  
+  // Search State
+  const [searchQuery, setSearchQuery] = useState('');
 
   // AI Analysis State
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -78,7 +81,9 @@ const App: React.FC = () => {
 
   useEffect(() => {
     syncFromCache();
-  }, [syncFromCache]);
+    // 탭 이동 시 검색어 초기화
+    setSearchQuery('');
+  }, [viewType, syncFromCache]);
 
   const handleUpdate = async () => {
     if (viewType === 'bookmarks') return; 
@@ -118,6 +123,15 @@ const App: React.FC = () => {
       default: return viewType.startsWith('mychannel') ? '내 채널 피드' : '롱폼 대시보드';
     }
   };
+
+  const filteredVideos = useMemo(() => {
+    if (!searchQuery.trim()) return videos;
+    const query = searchQuery.toLowerCase();
+    return videos.filter(v => 
+      v.title.toLowerCase().includes(query) || 
+      v.channelTitle.toLowerCase().includes(query)
+    );
+  }, [videos, searchQuery]);
 
   return (
     <div className="min-h-screen pb-20 bg-[#F8F9FA]">
@@ -169,7 +183,29 @@ const App: React.FC = () => {
                   {lastUpdateTime && <><Clock size={12} /> Last Update: {new Date(lastUpdateTime).toLocaleTimeString()} {viewType.startsWith('mychannel') && '(최근 90일)'}</>}
                 </p>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Search Bar */}
+                {!isRankingMode && (
+                  <div className="relative group mr-2">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-red-500 transition-colors" size={16} />
+                    <input 
+                      type="text"
+                      placeholder="피드 내 검색..."
+                      className="pl-11 pr-4 py-2 sm:py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-red-100 focus:border-red-500 transition-all w-48 sm:w-64"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                    {searchQuery && (
+                      <button 
+                        onClick={() => setSearchQuery('')}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5"
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
+                )}
+                
                 <button onClick={handleUpdate} className="flex items-center gap-2 px-5 py-2 sm:py-2.5 bg-red-600 hover:bg-red-700 text-white text-[11px] font-black rounded-xl transition-all shadow-lg shadow-red-100 active:scale-95"><RefreshCcw size={14} /> 업데이트</button>
                 <div className="flex bg-white p-1 rounded-xl border border-gray-100 shadow-sm">
                   <button onClick={() => handleSortChange(SortOrder.LATEST)} className={`px-5 py-1.5 text-[10px] font-black rounded-lg transition-all ${currentSortOrder === SortOrder.LATEST ? 'bg-gray-900 text-white' : 'text-gray-400'}`}>최신순</button>
@@ -181,11 +217,20 @@ const App: React.FC = () => {
             {isRankingMode ? (
               <ChannelRankingTable channels={channels} />
             ) : (
-              <div className={`grid gap-x-6 gap-y-12 ${viewType.includes('shorts') ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'}`}>
-                {videos.map((video) => (
-                  <VideoCard key={video.id} video={video} channel={channels.find(c => c.id === video.channelId)!} aspect={viewType.includes('shorts') ? 'shorts' : 'video'} onPreview={setPreviewVideoId} />
-                ))}
-              </div>
+              <>
+                {filteredVideos.length > 0 ? (
+                  <div className={`grid gap-x-6 gap-y-12 ${viewType.includes('shorts') ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'}`}>
+                    {filteredVideos.map((video) => (
+                      <VideoCard key={video.id} video={video} channel={channels.find(c => c.id === video.channelId)!} aspect={viewType.includes('shorts') ? 'shorts' : 'video'} onPreview={setPreviewVideoId} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-32 text-gray-400 space-y-4">
+                    <Search size={48} className="opacity-20" />
+                    <p className="font-black text-sm uppercase tracking-widest">검색 결과가 없습니다</p>
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
