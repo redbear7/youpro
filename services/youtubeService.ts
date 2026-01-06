@@ -111,7 +111,7 @@ export class YouTubeService {
     return items.some(item => item.video.id === videoId);
   }
 
-  private static ISO8601ToSeconds(duration: string): number {
+  public static ISO8601ToSeconds(duration: string): number {
     const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
     if (!match) return 0;
     const hours = parseInt(match[1] || '0');
@@ -162,10 +162,12 @@ export class YouTubeService {
       
       if (sort === SortOrder.LATEST) {
         videos.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
-      } else {
-        videos = videos
-          .filter(v => new Date(v.publishedAt).getTime() >= ninetyDaysAgo)
-          .sort((a, b) => b.viewCount - a.viewCount);
+      } else if (sort === SortOrder.POPULAR) {
+        videos = videos.filter(v => new Date(v.publishedAt).getTime() >= ninetyDaysAgo).sort((a, b) => b.viewCount - a.viewCount);
+      } else if (sort === SortOrder.COMMENTS) {
+        videos = videos.filter(v => new Date(v.publishedAt).getTime() >= ninetyDaysAgo).sort((a, b) => b.commentCount - a.commentCount);
+      } else if (sort === SortOrder.DURATION) {
+        videos.sort((a, b) => this.ISO8601ToSeconds(b.duration || 'PT0S') - this.ISO8601ToSeconds(a.duration || 'PT0S'));
       }
       return { videos, channels };
     }
@@ -291,6 +293,12 @@ export class YouTubeService {
         sorted = sorted
           .filter(v => new Date(v.publishedAt).getTime() >= ninetyDaysAgo)
           .sort((a, b) => b.viewCount - a.viewCount);
+      } else if (sort === SortOrder.COMMENTS) {
+        sorted = sorted
+          .filter(v => new Date(v.publishedAt).getTime() >= ninetyDaysAgo)
+          .sort((a, b) => b.commentCount - a.commentCount);
+      } else if (sort === SortOrder.DURATION) {
+        sorted.sort((a, b) => this.ISO8601ToSeconds(b.duration || 'PT0S') - this.ISO8601ToSeconds(a.duration || 'PT0S'));
       }
 
       return { videos: isMyChannel ? sorted : sorted.slice(0, 100), channels: allChannels };
@@ -334,8 +342,12 @@ export class YouTubeService {
     let sorted = [...allVideos];
     if (sort === SortOrder.LATEST) {
       sorted.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
-    } else {
+    } else if (sort === SortOrder.POPULAR) {
       sorted = sorted.filter(v => new Date(v.publishedAt).getTime() > ninetyDaysAgo).sort((a, b) => b.viewCount - a.viewCount);
+    } else if (sort === SortOrder.COMMENTS) {
+      sorted = sorted.filter(v => new Date(v.publishedAt).getTime() > ninetyDaysAgo).sort((a, b) => b.commentCount - a.commentCount);
+    } else if (sort === SortOrder.DURATION) {
+      sorted.sort((a, b) => this.ISO8601ToSeconds(b.duration || 'PT0S') - this.ISO8601ToSeconds(a.duration || 'PT0S'));
     }
 
     return { videos: sorted.slice(0, 100), channels };

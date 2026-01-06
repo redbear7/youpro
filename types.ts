@@ -41,7 +41,9 @@ export interface AppSettings {
 
 export enum SortOrder {
   LATEST = 'date',
-  POPULAR = 'viewCount'
+  POPULAR = 'viewCount',
+  COMMENTS = 'commentCount',
+  DURATION = 'duration'
 }
 
 export type ViewType = 

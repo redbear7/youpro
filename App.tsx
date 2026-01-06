@@ -49,8 +49,12 @@ const App: React.FC = () => {
       
       if (bookmarksSort === SortOrder.LATEST) {
         v.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
-      } else {
+      } else if (bookmarksSort === SortOrder.POPULAR) {
         v = v.filter(item => new Date(item.publishedAt).getTime() >= ninetyDaysAgo).sort((a, b) => b.viewCount - a.viewCount);
+      } else if (bookmarksSort === SortOrder.COMMENTS) {
+        v = v.filter(item => new Date(item.publishedAt).getTime() >= ninetyDaysAgo).sort((a, b) => b.commentCount - a.commentCount);
+      } else if (bookmarksSort === SortOrder.DURATION) {
+        v.sort((a, b) => YouTubeService.ISO8601ToSeconds(b.duration || 'PT0S') - YouTubeService.ISO8601ToSeconds(a.duration || 'PT0S'));
       }
       setVideos(v);
       setChannels(c);
@@ -64,11 +68,17 @@ const App: React.FC = () => {
       if (viewType.startsWith('mychannel')) {
         v = v.filter(item => new Date(item.publishedAt).getTime() >= ninetyDaysAgo);
       }
+      
       if (currentSortOrder === SortOrder.LATEST) {
         v.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
-      } else {
+      } else if (currentSortOrder === SortOrder.POPULAR) {
         v = v.filter(item => new Date(item.publishedAt).getTime() >= ninetyDaysAgo).sort((a, b) => b.viewCount - a.viewCount);
+      } else if (currentSortOrder === SortOrder.COMMENTS) {
+        v = v.filter(item => new Date(item.publishedAt).getTime() >= ninetyDaysAgo).sort((a, b) => b.commentCount - a.commentCount);
+      } else if (currentSortOrder === SortOrder.DURATION) {
+        v.sort((a, b) => YouTubeService.ISO8601ToSeconds(b.duration || 'PT0S') - YouTubeService.ISO8601ToSeconds(a.duration || 'PT0S'));
       }
+      
       setVideos(v);
       setChannels(cache.channels);
       setLastUpdateTime(cache.updatedAt);
@@ -81,7 +91,6 @@ const App: React.FC = () => {
 
   useEffect(() => {
     syncFromCache();
-    // 탭 이동 시 검색어 초기화
     setSearchQuery('');
   }, [viewType, syncFromCache]);
 
@@ -207,9 +216,11 @@ const App: React.FC = () => {
                 )}
                 
                 <button onClick={handleUpdate} className="flex items-center gap-2 px-5 py-2 sm:py-2.5 bg-red-600 hover:bg-red-700 text-white text-[11px] font-black rounded-xl transition-all shadow-lg shadow-red-100 active:scale-95"><RefreshCcw size={14} /> 업데이트</button>
-                <div className="flex bg-white p-1 rounded-xl border border-gray-100 shadow-sm">
-                  <button onClick={() => handleSortChange(SortOrder.LATEST)} className={`px-5 py-1.5 text-[10px] font-black rounded-lg transition-all ${currentSortOrder === SortOrder.LATEST ? 'bg-gray-900 text-white' : 'text-gray-400'}`}>최신순</button>
-                  <button onClick={() => handleSortChange(SortOrder.POPULAR)} className={`px-5 py-1.5 text-[10px] font-black rounded-lg transition-all ${currentSortOrder === SortOrder.POPULAR ? 'bg-gray-900 text-white' : 'text-gray-400'}`}>조회수순</button>
+                <div className="flex bg-white p-1 rounded-xl border border-gray-100 shadow-sm overflow-x-auto">
+                  <button onClick={() => handleSortChange(SortOrder.LATEST)} className={`whitespace-nowrap px-4 py-1.5 text-[10px] font-black rounded-lg transition-all ${currentSortOrder === SortOrder.LATEST ? 'bg-gray-900 text-white' : 'text-gray-400 hover:text-gray-600'}`}>최신순</button>
+                  <button onClick={() => handleSortChange(SortOrder.POPULAR)} className={`whitespace-nowrap px-4 py-1.5 text-[10px] font-black rounded-lg transition-all ${currentSortOrder === SortOrder.POPULAR ? 'bg-gray-900 text-white' : 'text-gray-400 hover:text-gray-600'}`}>조회수순</button>
+                  <button onClick={() => handleSortChange(SortOrder.COMMENTS)} className={`whitespace-nowrap px-4 py-1.5 text-[10px] font-black rounded-lg transition-all ${currentSortOrder === SortOrder.COMMENTS ? 'bg-gray-900 text-white' : 'text-gray-400 hover:text-gray-600'}`}>댓글순</button>
+                  <button onClick={() => handleSortChange(SortOrder.DURATION)} className={`whitespace-nowrap px-4 py-1.5 text-[10px] font-black rounded-lg transition-all ${currentSortOrder === SortOrder.DURATION ? 'bg-gray-900 text-white' : 'text-gray-400 hover:text-gray-600'}`}>런타임순</button>
                 </div>
               </div>
             </div>
